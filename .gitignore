@@ -1,2 +1,2 @@
-#data file
-*.csv
+# Ignore the entire data folder
+data/

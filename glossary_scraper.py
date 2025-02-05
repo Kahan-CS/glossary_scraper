@@ -2,14 +2,16 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import re
+import json
 
+# Function to clean text by removing unnecessary surrounding quotes
 def clean_text(text):
-    """Removes unnecessary surrounding quotes but keeps inner quotes intact."""
     text = text.strip()
     text = re.sub(r'^["\']|["\']$', '', text)  # Remove leading/trailing single/double quotes
     return text
 
-def scrape_glossary(url, output_file="glossary.csv"):
+# Function to scrape glossary terms and definitions from a given URL
+def scrape_glossary(url, output_file="./data/glossary.csv"):
     response = requests.get(url)
     if response.status_code != 200:
         print(f"Failed to fetch {url}")
@@ -17,7 +19,7 @@ def scrape_glossary(url, output_file="glossary.csv"):
 
     soup = BeautifulSoup(response.text, 'html.parser')
     dl_elements = soup.find_all("dl", class_="definition")
-    
+
     glossary_data = []
 
     for dl in dl_elements:
@@ -33,24 +35,31 @@ def scrape_glossary(url, output_file="glossary.csv"):
         print(f"No glossary terms found at {url}")
         return
 
-    # Write to CSV
+    # Append data to CSV
     with open(output_file, "a", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerows(glossary_data)
 
     print(f"Scraped {len(glossary_data)} glossary terms from {url}")
 
-# Example usage
-urls = [
-    "https://open.oregonstate.education/aandp/chapter/1-1-how-structure-determines-function/",
-    # Add more URLs here
-]
+# Function to load URLs from a JSON file
+def load_urls(json_file="./data/links.json"):
+    try:
+        with open(json_file, "r", encoding="utf-8") as file:
+            data = json.load(file)
+            return data.get("urls", [])
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error loading JSON file: {e}")
+        return []
+
+# Load URLs from JSON
+urls = load_urls()
 
 # Create a CSV with headers
-with open("glossary.csv", "w", newline="", encoding="utf-8") as file:
+with open("./data/glossary.csv", "w", newline="", encoding="utf-8") as file:
     writer = csv.writer(file)
     writer.writerow(["Term", "Definition", "Source URL"])
 
-# Scrape each URL
+# Scrape each URL from JSON
 for url in urls:
     scrape_glossary(url)
