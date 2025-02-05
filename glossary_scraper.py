@@ -1,6 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
+import re
+
+def clean_text(text):
+    """Removes unnecessary surrounding quotes but keeps inner quotes intact."""
+    text = text.strip()
+    text = re.sub(r'^["\']|["\']$', '', text)  # Remove leading/trailing single/double quotes
+    return text
 
 def scrape_glossary(url, output_file="glossary.csv"):
     response = requests.get(url)
@@ -9,8 +16,6 @@ def scrape_glossary(url, output_file="glossary.csv"):
         return
 
     soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Find all 'dl' elements with class 'definition'
     dl_elements = soup.find_all("dl", class_="definition")
     
     glossary_data = []
@@ -20,8 +25,8 @@ def scrape_glossary(url, output_file="glossary.csv"):
         definitions = dl.find_all("dd")
 
         for term, definition in zip(terms, definitions):
-            term_text = term.get_text(strip=True)
-            definition_text = definition.get_text(strip=True)
+            term_text = clean_text(term.get_text(strip=True))
+            definition_text = clean_text(definition.get_text(strip=True))
             glossary_data.append([term_text, definition_text, url])
 
     if not glossary_data:
