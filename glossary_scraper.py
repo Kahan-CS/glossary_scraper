@@ -1,13 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
-import re
 import json
 
 # Function to clean text by removing unnecessary surrounding quotes
 def clean_text(text):
     text = text.strip()
-    text = re.sub(r'^["\']|["\']$', '', text)  # Remove leading/trailing single/double quotes
+
+    # Remove surrounding quotes *only* if the entire string is quoted
+    if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+        text = text[1:-1].strip()
+
     return text
 
 # Function to scrape glossary terms and definitions from a given URL
@@ -27,20 +30,33 @@ def scrape_glossary(url, output_file="./data/glossary.csv"):
         definitions = dl.find_all("dd")
 
         for term, definition in zip(terms, definitions):
-            term_text = clean_text(term.get_text(strip=True))
-            definition_text = clean_text(definition.get_text(strip=True))
+            term_text = term.get_text(strip=True)
+            definition_text = definition.get_text(strip=True)
+
+            # Add raw extracted data first
             glossary_data.append([term_text, definition_text, url])
 
     if not glossary_data:
         print(f"No glossary terms found at {url}")
         return
+    
+    # # Print term, definition, and source for debugging
+    # for term, definition, source in glossary_data:
+    #     print(f"Term: {term}\nDefinition: {definition}\nSource: {source}\n")
+    
+    # Clean text after adding to the list
+    cleaned_glossary_data = [[clean_text(term), clean_text(definition), source] for term, definition, source in glossary_data]
 
-    # Append data to CSV
+    # # Print cleaned term, definition, and source for debugging
+    # for term, definition, source in cleaned_glossary_data:
+    #     print(f"Cleaned Term: {term}\nCleaned Definition: {definition}\nSource: {source}\n")
+
+    # Append cleaned data to CSV
     with open(output_file, "a", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
-        writer.writerows(glossary_data)
+        writer.writerows(cleaned_glossary_data)
 
-    print(f"Scraped {len(glossary_data)} glossary terms from {url}")
+    print(f"Scraped {len(cleaned_glossary_data)} glossary terms from {url}")
 
 # Function to load URLs from a JSON file
 def load_urls(json_file="./data/links.json"):
