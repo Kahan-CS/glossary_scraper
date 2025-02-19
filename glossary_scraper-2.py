@@ -33,20 +33,30 @@ def scrape_key_terms(url, output_file="./data/glossary2.csv"):
 
     key_terms_data = []
     
-    # Find all <p> elements containing terms and definitions
+    # Find all <p> elements containing terms and definitions, and then also make sure to remove the <strong> 
+    # elements 'properly' before extracting the definition
     for p in key_terms_div.find_all("p"):
+        # Extract term correctly
         strong_tags = p.find_all("strong")
         term = " ".join([t.get_text(strip=True) for t in strong_tags])
+
+        # Remove <strong> elements from the paragraph
+        for strong in strong_tags:
+            strong.extract()
+
+        # Now extract the definition safely
         definition = p.get_text(strip=True)
-        definition = definition.replace(term, "", 1).strip()
+
         key_terms_data.append([clean_text(term), clean_text(definition), url])
     
     # Append cleaned data to CSV
-    with open(output_file, "a", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerows(key_terms_data)
-    
-    print(f"Scraped {len(key_terms_data)} key terms from {url}")
+    if key_terms_data:
+        with open(output_file, "a", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerows(key_terms_data)
+        print(f"Scraped {len(key_terms_data)} key terms from {url}")
+    else:
+        print(f"No key terms found at {url}")
 
 # Function to load URLs from a JSON file
 # Note: here the links2.json file is created manually unlike links.json which was created using the scraper
